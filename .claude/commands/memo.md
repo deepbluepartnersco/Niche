@@ -28,7 +28,10 @@ For each school, in parallel where possible:
 - `WebSearch`: `"<school name>" <city> site:niche.com/k12`
 - Pick the first `niche.com/k12/<slug>-tx/` URL (not `/k12/d/...` — that's the district).
 - `WebFetch` that URL with: "Return JSON: `{niche_grade, metro_ranking, isd_name}`. `niche_grade` is the overall letter grade (e.g. 'B+', 'A-'). `metro_ranking` is the first ranking in the form `#X of Y Best ... in <METRO>` where METRO matches `<resolved metro>` — return the full string or null. `isd_name` is the school district this school belongs to, or null for private schools."
-- If Niche has no page, set `niche_grade = null`, `metro_ranking = null`, and keep the school in the list.
+
+**Public schools:** if Niche has no page or the fetch fails, keep the school in the list with `niche_grade = null` and `metro_ranking = null`.
+
+**Private schools:** these often have no Niche page at all — especially small religious, Montessori, or preschool programs. Every private school returned by step 3 **must** appear as a row in the final Private Schools table, regardless of whether Niche has a page for it. If `WebSearch` returns zero results, or the top result isn't a `niche.com/k12/<slug>-tx/` URL, or `WebFetch` 404s / returns an error page — skip the fetch for that school, set `niche_grade = null` and `metro_ranking = null`, and move on. **Never drop a private school from the list.**
 
 ### 5. Identify + fetch the ISD
 - From step 4, take the most-common non-null `isd_name` across public schools. Fallback to the ISD of the first high school, then first elementary.
@@ -63,4 +66,5 @@ Alternatively, emit the markdown directly following the shape in `README.md`. Ei
 - **Do not** substitute a ranking from a different metro. If the only ranking Niche shows is Texas-wide or national, omit it.
 - **Do not** commit cached HTML or fetched pages — don't write to `data/cache/` (the dir is gitignored; using it is optional and session-local).
 - **Do not** hit tea.texas.gov unless `district_score` returns None and `data/tea_districts.json` is empty.
+- **Private-school row count must equal `nearby_private` count from step 3.** If it doesn't, you dropped one — add it back with N/A values before printing.
 - If the address is outside DFW/Houston, refuse cleanly: "This tool supports DFW and Houston metros only."
