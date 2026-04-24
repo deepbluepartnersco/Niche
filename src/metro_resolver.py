@@ -33,16 +33,19 @@ def resolve_metro(county_or_city: str) -> Metro:
         "",
         county_or_city,
         flags=re.I,
-    ).strip().title()
+    ).strip()
 
     if looks_like_county:
-        if normalized in DFW_COUNTIES:
+        titled = normalized.title()
+        if titled in DFW_COUNTIES:
             return "DFW"
-        if normalized in HOUSTON_COUNTIES:
+        if titled in HOUSTON_COUNTIES:
             return "Houston"
     else:
         if _CITY_TABLE_PATH.exists():
             cities: dict[str, str] = json.loads(_CITY_TABLE_PATH.read_text())
-            if normalized in cities:
-                return cities[normalized]  # type: ignore[return-value]
+            cities_ci = {k.lower(): v for k, v in cities.items()}
+            hit = cities_ci.get(normalized.lower())
+            if hit is not None:
+                return hit  # type: ignore[return-value]
     raise ValueError(f"'{county_or_city}' is not in DFW or Houston metro")

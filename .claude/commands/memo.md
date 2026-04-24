@@ -31,7 +31,7 @@ For each school, in parallel where possible:
 
 **Public schools:** if Niche has no page or the fetch fails, keep the school in the list with `niche_grade = null` and `metro_ranking = null`.
 
-**Private schools:** these often have no Niche page at all — especially small religious, Montessori, or preschool programs. Every private school returned by step 3 **must** appear as a row in the final Private Schools table, regardless of whether Niche has a page for it. If `WebSearch` returns zero results, or the top result isn't a `niche.com/k12/<slug>-tx/` URL, or `WebFetch` 404s / returns an error page — skip the fetch for that school, set `niche_grade = null` and `metro_ranking = null`, and move on. **Never drop a private school from the list.**
+**Private schools — invariant:** every private school returned by step 3 appears as a row in the final Private Schools table, full stop. Level and Name come from apartments.com and are non-negotiable; the Niche lookup is best-effort enrichment on top of that. If `WebSearch` returns zero results, the top hit isn't a `niche.com/k12/<slug>-tx/` URL, or `WebFetch` 404s / returns an error page, keep the school with `niche_grade = null` and `metro_ranking = null` and move on. Small religious, Montessori, and preschool programs frequently have no Niche page — that is expected, not a reason to drop the row.
 
 ### 5. Identify + fetch the ISD
 - From step 4, take the most-common non-null `isd_name` across public schools. Fallback to the ISD of the first high school, then first elementary.
@@ -44,9 +44,12 @@ For each school, in parallel where possible:
 
 ### 7. Fetch the Niche place page
 - URL: `https://www.niche.com/places-to-live/<city-slug>-tx/` where `<city-slug>` is the city lowercased, spaces → `-`.
-- `WebFetch` with: "Return JSON with keys `overall_grade` (letter grade), `category_grades` (object with keys: Public Schools, Crime & Safety, Housing, Nightlife, Good for Families, Diversity, Jobs, Weather, Cost of Living, Health & Fitness, Outdoor Activities, Commute — values are letter grades), and `rankings` (list of up to 8 top rankings of the form `#X of Y ... in <METRO>` matching `<resolved metro>`)."
+- `WebFetch` with: "Return JSON with keys `overall_grade` (letter grade), `category_grades` (object with keys: Public Schools, Crime & Safety, Housing, Nightlife, Good for Families, Diversity, Jobs, Weather, Cost of Living, Health & Fitness, Outdoor Activities, Commute — values are letter grades), and `rankings` (list of **every** ranking of the form `#X of Y ... in <METRO>` matching `<resolved metro>` — no cap. Preserve the order Niche lists them in. Exclude Texas-wide and national rankings.)"
 
-### 8. Render
+### 8. Pre-render check
+Before rendering, verify `len(private_schools) == len(nearby_private)` from step 3's JSON. If it's lower, you dropped a private school somewhere in step 4 — reconstruct the missing rows from step 3's `nearby_private` data with `niche_grade = null` and `metro_ranking = null` before moving on.
+
+### 9. Render
 Use `src/markdown_renderer.py` for deterministic output:
 
 ```python
@@ -62,9 +65,9 @@ Alternatively, emit the markdown directly following the shape in `README.md`. Ei
 
 ## Hard rules
 
+- **Private-school row count must equal `nearby_private` count from step 3.** This is the most common failure mode — if your private schools table has fewer rows than apartments.com returned, you dropped one. Add it back with `N/A` grade and ranking before printing. Step 8 is the dedicated pre-render check — don't skip it.
 - **Do not** invent grades, rankings, or TEA scores. If a field is missing, render `N/A`.
 - **Do not** substitute a ranking from a different metro. If the only ranking Niche shows is Texas-wide or national, omit it.
 - **Do not** commit cached HTML or fetched pages — don't write to `data/cache/` (the dir is gitignored; using it is optional and session-local).
 - **Do not** hit tea.texas.gov unless `district_score` returns None and `data/tea_districts.json` is empty.
-- **Private-school row count must equal `nearby_private` count from step 3.** If it doesn't, you dropped one — add it back with N/A values before printing.
 - If the address is outside DFW/Houston, refuse cleanly: "This tool supports DFW and Houston metros only."

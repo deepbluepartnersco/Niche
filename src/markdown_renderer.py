@@ -10,6 +10,11 @@ CATEGORY_ORDER = [
     ("Outdoor Activities", "Commute"),
 ]
 
+METRO_LABEL = {
+    "DFW": "Dallas-Fort Worth Area",
+    "Houston": "Houston Area",
+}
+
 
 def render(report: PropertyReport) -> str:
     return "\n\n---\n\n".join([_render_slide1(report), _render_slide2(report)])
@@ -29,7 +34,7 @@ def _render_slide1(report: PropertyReport) -> str:
         l_grade = p.category_grades.get(left, "N/A")
         r_grade = p.category_grades.get(right, "N/A")
         lines.append(f"| {left} | {l_grade} | | {right} | {r_grade} |")
-    lines += ["", "**Top Rankings**"]
+    lines += ["", f"**All Rankings in the {METRO_LABEL[p.metro]}**"]
     lines += [f"- {r}" for r in p.rankings] if p.rankings else ["- _(none)_"]
     return "\n".join(lines)
 

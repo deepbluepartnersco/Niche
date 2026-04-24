@@ -62,7 +62,7 @@ Tradeoff: each run hits the live network through Claude (no local cache), and yo
 | Cost of Living | B | | Health & Fitness | B− |
 | Outdoor Activities | B | | Commute | B− |
 
-**Top Rankings**
+**All Rankings in the Dallas-Fort Worth Area**
 - #9 of 125 Most Diverse Suburbs in DFW
 - #20 of 287 Most Diverse Places to Live in DFW
 
